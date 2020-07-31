@@ -317,15 +317,13 @@ namespace OmlUtilities
             [Argument(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
             string version)
         {
-
-            if (String.IsNullOrEmpty(keywordSearch)) {
+            if (string.IsNullOrEmpty(keywordSearch)) {
                 Console.WriteLine("Please inform a expression for search and try again.");
             }
             else
             {
                 Console.WriteLine("Search for keyword '{0}'", keywordSearch);
             }
-
 
             if (Directory.Exists(omlPathDir))
             {
@@ -341,21 +339,27 @@ namespace OmlUtilities
                 int CountFile = 0;
                 foreach (FileInfo file in Files)
                 {
+                    try
+                    {
+                        Oml oml = _GetOmlInstance(omlPathDir + Path.DirectorySeparatorChar + file, version);
 
-                    Oml oml = _GetOmlInstance(omlPathDir+Path.DirectorySeparatorChar+file, version);
-                    String txtXml = oml.GetXml().ToString();
+                        string txtXml = oml.GetXml().ToString();
 
-                    int i = 0;
-                    int count = 0;
-                    while ((i = txtXml.IndexOf(keywordSearch, i)) != -1) {
-                        i += keywordSearch.Length;
-                        count++;
+                        int i = 0;
+                        int count = 0;
+                        while ((i = txtXml.IndexOf(keywordSearch, i)) != -1)
+                        {
+                            i += keywordSearch.Length;
+                            count++;
 
+                        }
+
+                        Console.WriteLine("[{0}/{1}] - {2} ocurrences found in {3}.", ++CountFile, Files.Count(), count, file);
                     }
-
-                    CountFile++;
-
-                    Console.WriteLine("[{0}/{1}] - {2} ocurrences found in {3}.", CountFile, Files.Count() ,count, file);
+                    catch(Exception err)
+                    {
+                        Console.WriteLine("[{0}/{1}] - Error ocurred parsing file: {2}", ++CountFile, Files.Count(), err.Message.Replace("\n", ""));
+                    }
                 }
 
                 watch.Stop();
@@ -366,18 +370,11 @@ namespace OmlUtilities
                         ElapsedMS.Seconds);
 
                 Console.WriteLine("Elapsed time of {0}", formatElapsedTime);
-
             }
             else
+            {
                 Console.WriteLine("Directory not found.");
-
-
-
-
-
-
-
-
+            }
         }
     }
 }
