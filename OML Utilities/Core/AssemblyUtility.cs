@@ -23,7 +23,7 @@ namespace OmlUtilities.Core
         {
             string dllName = assemblyName + ".dll";
             Assembly assembly = typeof(AssemblyUtility).Assembly;
-            string resourceName = _GetAssemblyResourceName(assembly, dllName);
+            string resourceName = GetAssemblyResourceName(assembly, dllName);
 
             if (resourceName == null && PlatformVersion != null)
             {
@@ -53,8 +53,7 @@ namespace OmlUtilities.Core
                     {
                         case "ICSharpCode.SharpZipLib": dllName = "ICSharpCode.SharpZipLib.1.1.0.dll"; break;
                         case "Noemax.FastInfoset.Net4": dllName = "Noemax.FastInfoset.Net4.18.14.5339.dll"; break;
-                        case "OutSystems.Common": dllName = "OutSystems.Common.11.0.520.0.dll"; break;
-                        case "OutSystems.RuntimeCommon": dllName = "OutSystems.RuntimeCommon.11.0.520.0.dll"; break;
+                        case "OutSystems.RuntimeCommon": dllName = "OutSystems.RuntimeCommon.11.17.0.0.dll"; break;
                     }
                 }
                 else
@@ -67,7 +66,7 @@ namespace OmlUtilities.Core
                     throw new AssemblyUtilityException("Unable to find assembly \"" + assemblyName + "\" for platform version " + PlatformVersion.Version + ".");
                 }
 
-                resourceName = _GetAssemblyResourceName(assembly, dllName);
+                resourceName = GetAssemblyResourceName(assembly, dllName);
             }
 
             if (resourceName == null)
@@ -153,7 +152,7 @@ namespace OmlUtilities.Core
         /// <param name="assembly">Assembly of the program.</param>
         /// <param name="dllName">Name of the DLL.</param>
         /// <returns>Resource name of the assembly.</returns>
-        private static string _GetAssemblyResourceName(Assembly assembly, string dllName)
+        private static string GetAssemblyResourceName(Assembly assembly, string dllName)
         {
             return assembly.GetManifestResourceNames().FirstOrDefault(rn => rn.EndsWith(dllName));
         }

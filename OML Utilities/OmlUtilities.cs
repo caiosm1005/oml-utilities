@@ -13,7 +13,7 @@ namespace OmlUtilities
 {
     public class OmlUtilities
     {
-        protected Stream _GetStream(string path, bool isInput)
+        protected Stream GetStream(string path, bool isInput)
         {
             if (string.IsNullOrEmpty(path))
             {
@@ -55,7 +55,7 @@ namespace OmlUtilities
             }
         }
 
-        protected Oml _GetOmlInstance(string input, string version)
+        protected Oml GetOmlInstance(string input, string version)
         {
             if (string.IsNullOrEmpty(input))
             {
@@ -76,7 +76,7 @@ namespace OmlUtilities
                 AssemblyUtility.PlatformVersion = platformVersion ?? throw new Exception("Platform version \"" + version + "\" not recognized. Please run ShowPlatformVersions in order to list supported versions.");
             }
 
-            Stream stream = _GetStream(input, true);
+            Stream stream = GetStream(input, true);
 
             if (stream.CanSeek)
             {
@@ -132,7 +132,7 @@ namespace OmlUtilities
             [Argument(Description = "If set, returns only the value of the specified header.")]
             string headerName = null)
         {
-            Oml oml = _GetOmlInstance(input, version);
+            Oml oml = GetOmlInstance(input, version);
             bool found = false;
 
             foreach (PropertyInfo property in typeof(OmlHeader).GetProperties())
@@ -172,7 +172,7 @@ namespace OmlUtilities
             [Argument(Description = "If set, prints the XML content of the desired fragment.")]
             string fragmentName = null)
         {
-            Oml oml = _GetOmlInstance(input, version);
+            Oml oml = GetOmlInstance(input, version);
 
             if (string.IsNullOrEmpty(fragmentName))
             {
@@ -216,7 +216,7 @@ namespace OmlUtilities
             ShortName = "F")]
             List<string> fragments = null)
         {
-            Oml oml = _GetOmlInstance(input, version);
+            Oml oml = GetOmlInstance(input, version);
 
             // Set headers
             if (headers != null)
@@ -290,7 +290,7 @@ namespace OmlUtilities
             }
 
             // Save manipulated OML
-            Stream outputStream = _GetStream(output, false);
+            Stream outputStream = GetStream(output, false);
             if (format != null && format.Equals("xml", StringComparison.InvariantCultureIgnoreCase) || format == null && output.EndsWith(".xml", StringComparison.InvariantCultureIgnoreCase))
             {
                 StreamWriter sw = new StreamWriter(outputStream);
@@ -341,7 +341,7 @@ namespace OmlUtilities
                 {
                     try
                     {
-                        Oml oml = _GetOmlInstance(omlPathDir + Path.DirectorySeparatorChar + file, version);
+                        Oml oml = GetOmlInstance(omlPathDir + Path.DirectorySeparatorChar + file, version);
 
                         string txtXml = oml.GetXml().ToString();
 

@@ -8,7 +8,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>OmlUtilities</RootNamespace>
     <AssemblyName>oml</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>false</Deterministic>
@@ -38,28 +38,29 @@
   <ItemGroup>
     <Reference Include="CommandDotNet, Version=2.8.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\CommandDotNet.2.8.0\lib\netstandard2.0\CommandDotNet.dll</HintPath>
-      <Private>False</Private>
     </Reference>
     <Reference Include="FluentValidation, Version=7.0.0.0, Culture=neutral, PublicKeyToken=7de548da2fbae0f0, processorArchitecture=MSIL">
       <HintPath>..\packages\FluentValidation.7.6.103\lib\net45\FluentValidation.dll</HintPath>
-      <Private>False</Private>
     </Reference>
     <Reference Include="Humanizer, Version=2.5.0.0, Culture=neutral, PublicKeyToken=979442b78dfc278e, processorArchitecture=MSIL">
       <HintPath>..\packages\Humanizer.Core.2.5.16\lib\netstandard2.0\Humanizer.dll</HintPath>
-      <Private>False</Private>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="System.ComponentModel.Annotations, Version=4.2.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.ComponentModel.Annotations.4.4.1\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
-      <Private>False</Private>
+    <Reference Include="System.ComponentModel.Annotations, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ComponentModel.Annotations.5.0.0\lib\net461\System.ComponentModel.Annotations.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.ComponentModel.Primitives, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.ComponentModel.Primitives.4.3.0\lib\net45\System.ComponentModel.Primitives.dll</HintPath>
       <Private>True</Private>
-      <Private>False</Private>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System.Core" />
+    <Reference Include="System.Reflection, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reflection.4.3.0\lib\net462\System.Reflection.dll</HintPath>
+      <Private>True</Private>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -93,12 +94,6 @@
     <EmbeddedResource Include="Libs\OutSystems.RuntimeCommon.9.1.603.0.dll" />
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="Libs\OutSystems.Common.11.0.520.0.dll" />
-  </ItemGroup>
-  <ItemGroup>
-    <EmbeddedResource Include="Libs\OutSystems.RuntimeCommon.11.0.520.0.dll" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Libs\ICSharpCode.SharpZipLib.1.1.0.dll" />
   </ItemGroup>
   <ItemGroup>
@@ -112,6 +107,14 @@
     <EmbeddedResource Include="Libs\CommandDotNet.dll" />
     <EmbeddedResource Include="Libs\FluentValidation.dll" />
     <EmbeddedResource Include="Libs\Humanizer.dll" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <EmbeddedResource Include="Libs\OutSystems.Model.Implementation.dll" />
+    <EmbeddedResource Include="Libs\OutSystems.RuntimeCommon.11.17.0.0.dll" />
+    <EmbeddedResource Include="Libs\OutSystems.MetaModel.dll" />
+    <EmbeddedResource Include="Libs\OutSystems.FrameworkExtensions.dll" />
+    <EmbeddedResource Include="Libs\OutSystems.Zip.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

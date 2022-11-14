@@ -16,7 +16,7 @@ namespace OmlUtilities.Core
         /// <summary>
         /// Platform version used for loading the OML contents.
         /// </summary>
-        public PlatformVersion PlatformVersion { get; }
+        public PlatformVersion platformVersion { get; }
 
         /// <summary>
         /// OML header class instance.
@@ -95,12 +95,28 @@ namespace OmlUtilities.Core
                 throw new Exception("Platform version must be defined before loading the OML content.");
             }
 
-            PlatformVersion = AssemblyUtility.PlatformVersion;
-            Type assemblyType = AssemblyUtility.GetAssemblyType("OutSystems.Common", "OutSystems.Oml.Oml");
+            Type assemblyType;
+            platformVersion = AssemblyUtility.PlatformVersion;
+
+            if (platformVersion == PlatformVersion.O_11_0)
+            {
+                assemblyType = AssemblyUtility.GetAssemblyType("OutSystems.Model.Implementation", "OutSystems.Model.Implementation.Oml.Oml");
+            }
+            else
+            {
+                assemblyType = AssemblyUtility.GetAssemblyType("OutSystems.Common", "OutSystems.Oml.Oml");
+            }
 
             try
             {
-                _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
+                if (platformVersion == PlatformVersion.O_11_0)
+                {
+                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
+                }
+                else
+                {
+                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
+                }
                 Header = new OmlHeader(this);
             }
             catch(Exception e)
@@ -120,7 +136,7 @@ namespace OmlUtilities.Core
             }
 
             // Set OML version to the current version
-            Header.Version = PlatformVersion.Version;
+            Header.Version = platformVersion.Version;
         }
     }
 }

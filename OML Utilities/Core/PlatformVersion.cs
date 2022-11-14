@@ -11,7 +11,7 @@ namespace OmlUtilities.Core
         {
             new PlatformVersion("9.1.603.0", "O9.1"),
             new PlatformVersion("10.0.303.0", "O10"),
-            new PlatformVersion("11.0.520.0", "O11")
+            new PlatformVersion("11.53.25.0", "O11")
         };
 
         /// <summary>
