@@ -105,7 +105,12 @@ namespace OmlUtilities.Core
         {
             Type assemblyType = assemblyInstance.GetType();
             BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public;
-            return (T)assemblyType.InvokeMember(fieldName, flags, null, assemblyInstance, null);
+            object value = assemblyType.InvokeMember(fieldName, flags, null, assemblyInstance, null);
+            if (typeof(T) == typeof(string) && value.GetType().IsEnum)
+            {
+                value = value.ToString();
+            }
+            return (T)value;
         }
 
         /// <summary>
@@ -119,6 +124,10 @@ namespace OmlUtilities.Core
             Type assemblyType = assemblyInstance.GetType();
             BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public;
             PropertyInfo propertyInfo = assemblyType.GetProperty(fieldName, flags);
+            if (value is string && propertyInfo.PropertyType.IsEnum)
+            {
+                value = Enum.Parse(propertyInfo.PropertyType, (string)value);
+            }
             propertyInfo.SetValue(assemblyInstance, value, null);
         }
 

@@ -65,6 +65,22 @@ namespace OmlUtilities.Core
             }
 
             /// <summary>
+            /// Module type.
+            /// </summary>
+            [OmlHeader]
+            public string Type
+            {
+                get
+                {
+                    return AssemblyUtility.GetInstanceField<string>(_instance, "ESpaceType");
+                }
+                set
+                {
+                    AssemblyUtility.SetInstanceField(_instance, "ESpaceType", value);
+                }
+            }
+
+            /// <summary>
             /// Header representing the last time the module was modified.
             /// </summary>
             [OmlHeader]
