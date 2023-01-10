@@ -13,14 +13,14 @@ namespace OmlUtilities
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new Exception("The " + (isInput ? "input" : "output") + " argument is mandatory.");
+                throw new Exception($"The {(isInput ? "input" : "output")} argument is mandatory.");
             }
 
             if (path.StartsWith("pipe:", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (!Console.IsInputRedirected)
                 {
-                    throw new Exception("Unable to pipe the " + (isInput ? "input" : "output") + " argument because the console input is not redirected.");
+                    throw new Exception($"Unable to pipe the {(isInput ? "input" : "output")} argument because the console input is not redirected.");
                 }
 
                 string pipeIndex = path.Substring(5);
@@ -35,7 +35,7 @@ namespace OmlUtilities
                     case "0": return Console.OpenStandardInput();
                     case "1": return Console.OpenStandardOutput();
                     case "2": return Console.OpenStandardError();
-                    default: throw new Exception("Unknown pipe index " + pipeIndex + " used in the " + (isInput ? "input" : "output") + " argument.");
+                    default: throw new Exception($"Unknown pipe index {pipeIndex} used in the {(isInput ? "input" : "output")} argument.");
                 }
             }
             else
@@ -68,8 +68,8 @@ namespace OmlUtilities
             }
             else
             {
-                PlatformVersion platformVersion = PlatformVersion.Versions.FirstOrDefault(p => p.Label.Equals(version, StringComparison.InvariantCultureIgnoreCase));
-                AssemblyUtility.PlatformVersion = platformVersion ?? throw new Exception("Platform version \"" + version + "\" not recognized. Please run ShowPlatformVersions in order to list supported versions.");
+                PlatformVersion? platformVersion = PlatformVersion.Versions.FirstOrDefault(p => p.Label.Equals(version, StringComparison.InvariantCultureIgnoreCase));
+                AssemblyUtility.PlatformVersion = platformVersion ?? throw new Exception($"Platform version \"{version}\" not recognized. Please run ShowPlatformVersions in order to list supported versions.");
             }
 
             Stream stream = GetStream(input, true);
@@ -122,14 +122,14 @@ namespace OmlUtilities
             [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
             string version,
             [Operand(Description = "If set, returns only the value of the specified header.")]
-            string headerName = null)
+            string? headerName = null)
         {
             Oml oml = GetOmlInstance(input, version);
             bool found = false;
 
             foreach (PropertyInfo property in typeof(OmlHeader).GetProperties())
             {
-                OmlHeaderAttribute attribute = (OmlHeaderAttribute)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
+                OmlHeaderAttribute? attribute = (OmlHeaderAttribute?)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
 
                 if (attribute == null || !string.IsNullOrEmpty(headerName) && !headerName.Equals(property.Name, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -150,7 +150,7 @@ namespace OmlUtilities
 
             if (!string.IsNullOrEmpty(headerName) && !found)
             {
-                throw new Exception("Header name \"" + headerName + "\" was not found.");
+                throw new Exception($"Header name \"{headerName}\" was not found.");
             }
         }
 
@@ -162,7 +162,7 @@ namespace OmlUtilities
             [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
             string version,
             [Operand(Description = "If set, prints the XML content of the desired fragment.")]
-            string fragmentName = null)
+            string? fragmentName = null)
         {
             Oml oml = GetOmlInstance(input, version);
 
@@ -179,7 +179,7 @@ namespace OmlUtilities
 
                 if (fragment == null)
                 {
-                    throw new Exception("Unable to get XML content of fragment \"" + fragmentName + "\".");
+                    throw new Exception($"Unable to get XML content of fragment \"{fragmentName}\".");
                 }
 
                 Console.WriteLine(fragment.ToString(SaveOptions.DisableFormatting));
@@ -196,11 +196,11 @@ namespace OmlUtilities
             [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
             string version,
             [Option('f', "format", Description = "Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.")]
-            string format = null,
+            string? format = null,
             [Option('H', "header", Description = "Sets a header value. Name and value must be separated by colon (':').")]
-            List<string> headers = null,
+            List<string>? headers = null,
             [Option('F', "fragment", Description = "Sets the content of a fragment. Name and value must be separated by colon (':').")]
-            List<string> fragments = null)
+            List<string>? fragments = null)
         {
             Oml oml = GetOmlInstance(input, version);
 
@@ -213,7 +213,7 @@ namespace OmlUtilities
 
                     if (colonIndex == -1)
                     {
-                        throw new Exception("Unable to parse header value \"" + headerLine + "\". Name and value must be separated by colon (':').");
+                        throw new Exception($"Unable to parse header value \"{headerLine}\". Name and value must be separated by colon (':').");
                     }
 
                     string headerName = headerLine.Substring(0, colonIndex);
@@ -227,7 +227,7 @@ namespace OmlUtilities
 
                     foreach (PropertyInfo property in typeof(OmlHeader).GetProperties())
                     {
-                        OmlHeaderAttribute attribute = (OmlHeaderAttribute)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
+                        OmlHeaderAttribute? attribute = (OmlHeaderAttribute?)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
 
                         if (attribute == null || !headerName.Equals(property.Name, StringComparison.InvariantCultureIgnoreCase))
                         {
@@ -236,7 +236,7 @@ namespace OmlUtilities
 
                         if (attribute.IsReadOnly)
                         {
-                            throw new Exception("Cannot change header \"" + property.Name + "\" because it is read-only.");
+                            throw new Exception($"Cannot change header \"{property.Name}\" because it is read-only.");
                         }
 
                         string headerValue = headerLine.Substring(colonIndex + 1);
@@ -246,7 +246,7 @@ namespace OmlUtilities
 
                     if (!found)
                     {
-                        throw new Exception("Header name \"" + headerName + "\" was not found.");
+                        throw new Exception($"Header name \"{headerName}\" was not found.");
                     }
                 }
             }
@@ -260,7 +260,7 @@ namespace OmlUtilities
 
                     if (colonIndex == -1)
                     {
-                        throw new Exception("Unable to parse fragment value \"" + fragmentLine + "\". Name and value must be separated by colon (':').");
+                        throw new Exception($"Unable to parse fragment value \"{fragmentLine}\". Name and value must be separated by colon (':').");
                     }
 
                     string fragmentName = fragmentLine.Substring(0, colonIndex);

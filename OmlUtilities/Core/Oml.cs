@@ -29,7 +29,12 @@ namespace OmlUtilities.Core
         /// <returns>List of availabel fragment names.</returns>
         public List<string> GetFragmentNames()
         {
-            return AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames").ToList();
+            IEnumerable<string>? fragments = AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames");
+            if (fragments == null)
+            {
+                throw new Exception("Unable to get list of fragment names. Null returned.");
+            }
+            return fragments.ToList();
         }
 
         /// <summary>
@@ -109,14 +114,22 @@ namespace OmlUtilities.Core
 
             try
             {
+                object? localInstance;
+#pragma warning disable CS8625
                 if (platformVersion == PlatformVersion.O_11_0)
                 {
-                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
+                    localInstance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
                 }
                 else
                 {
-                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
+                    localInstance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
                 }
+#pragma warning restore CS8625
+                if (localInstance == null)
+                {
+                    throw new Exception("Unable to create instance of OML class. Resulting instance is null.");
+                }
+                _instance = localInstance;
                 Header = new OmlHeader(this);
             }
             catch(Exception e)

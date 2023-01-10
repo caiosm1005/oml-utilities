@@ -29,13 +29,18 @@ namespace OmlUtilities.Core
             }
 
             /// <summary>
-            /// Creates an fragment XML reader instance.
+            /// Creates an fragment XML writer instance.
             /// </summary>
             /// <param name="oml">OML instance which owns the fragment.</param>
             /// <param name="fragmentName">Name of the fragment to be written.</param>
             public OmlFragmentWriter(Oml oml, string fragmentName)
             {
-                _instance = AssemblyUtility.ExecuteInstanceMethod<object>(oml._instance, "GetFragmentXmlWriter", new object[] { fragmentName });
+                object? localInstance = AssemblyUtility.ExecuteInstanceMethod<object>(oml._instance, "GetFragmentXmlWriter", new object[] { fragmentName });
+                if (localInstance == null)
+                {
+                    throw new Exception("Unable to get fragment XML writer instance. Null returned.");
+                }
+                _instance = localInstance;
             }
         }
     }

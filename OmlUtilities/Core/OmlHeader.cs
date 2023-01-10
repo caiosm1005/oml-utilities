@@ -17,7 +17,12 @@ namespace OmlUtilities.Core
             /// <param name="oml">OML instance from which the header belongs to.</param>
             public OmlHeader(Oml oml)
             {
-                _instance = AssemblyUtility.GetInstanceField<object>(oml._instance, "Header");
+                object? localInstance = AssemblyUtility.GetInstanceField<object>(oml._instance, "Header");
+                if (localInstance == null)
+                {
+                    throw new Exception("Unable to get OML headers. Null returned.");
+                }
+                _instance = localInstance;
             }
 
             /// <summary>
@@ -28,7 +33,7 @@ namespace OmlUtilities.Core
             {
                 get
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "ActivationCode");
+                    return AssemblyUtility.GetInstanceField<string>(_instance, "ActivationCode") ?? string.Empty;
                 }
             }
 
@@ -40,7 +45,7 @@ namespace OmlUtilities.Core
             {
                 get
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "Name");
+                    return AssemblyUtility.GetInstanceField<string>(_instance, "Name") ?? string.Empty;
                 }
                 set
                 {
@@ -56,7 +61,7 @@ namespace OmlUtilities.Core
             {
                 get
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "Description");
+                    return AssemblyUtility.GetInstanceField<string>(_instance, "Description") ?? string.Empty;
                 }
                 set
                 {
@@ -72,7 +77,7 @@ namespace OmlUtilities.Core
             {
                 get
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "ESpaceType");
+                    return AssemblyUtility.GetInstanceField<string>(_instance, "ESpaceType") ?? string.Empty;
                 }
                 set
                 {
@@ -120,7 +125,7 @@ namespace OmlUtilities.Core
             {
                 get
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "Signature");
+                    return AssemblyUtility.GetInstanceField<string>(_instance, "Signature") ?? string.Empty;
                 }
             }
 
@@ -128,7 +133,7 @@ namespace OmlUtilities.Core
             /// Module service studio version header.
             /// </summary>
             [OmlHeader]
-            public Version Version
+            public Version? Version
             {
                 get
                 {
@@ -144,7 +149,7 @@ namespace OmlUtilities.Core
             /// Header containing the previous service studio version before the last upgrade. 
             /// </summary>
             [OmlHeader]
-            public Version LastUpgradeVersion
+            public Version? LastUpgradeVersion
             {
                 get
                 {

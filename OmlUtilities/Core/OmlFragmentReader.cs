@@ -17,7 +17,12 @@ namespace OmlUtilities.Core
             /// <returns>XML element of the fragment.</returns>
             public XElement GetXElement()
             {
-                return AssemblyUtility.ExecuteInstanceMethod<XElement>(_instance, "ToXElement");
+                XElement? xelement = AssemblyUtility.ExecuteInstanceMethod<XElement>(_instance, "ToXElement");
+                if (xelement == null)
+                {
+                    throw new Exception("Unable to get XElement from fragment. Null returned.");
+                }
+                return xelement;
             }
 
             /// <summary>
@@ -35,7 +40,12 @@ namespace OmlUtilities.Core
             /// <param name="fragmentName">Name of the fragment to be parsed.</param>
             public OmlFragmentReader(Oml oml, string fragmentName)
             {
-                _instance = AssemblyUtility.ExecuteInstanceMethod<object>(oml._instance, "GetFragmentXmlReader", new object[] { fragmentName });
+                object? localInstance = AssemblyUtility.ExecuteInstanceMethod<object>(oml._instance, "GetFragmentXmlReader", new object[] { fragmentName });
+                if (localInstance == null)
+                {
+                    throw new Exception("Unable to get fragment XML reader instance. Null returned.");
+                }
+                _instance = localInstance;
             }
         }
     }
