@@ -1,5 +1,9 @@
 ﻿using CommandDotNet;
 using OmlUtilities.Core;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Xml.Linq;
 using static OmlUtilities.Core.Oml;
@@ -68,7 +72,7 @@ namespace OmlUtilities
             }
             else
             {
-                PlatformVersion? platformVersion = PlatformVersion.Versions.FirstOrDefault(p => p.Label.Equals(version, StringComparison.InvariantCultureIgnoreCase));
+                PlatformVersion platformVersion = PlatformVersion.Versions.FirstOrDefault(p => p.Label.Equals(version, StringComparison.InvariantCultureIgnoreCase));
                 AssemblyUtility.PlatformVersion = platformVersion ?? throw new Exception($"Platform version \"{version}\" not recognized. Please run ShowPlatformVersions in order to list supported versions.");
             }
 
@@ -96,9 +100,9 @@ namespace OmlUtilities
         [Command(Description = "Displays a list of compatible platform versions.",
         ExtendedHelpText = "Displays a list of Service Studio versions that this utility is compatible with for loading and saving OML files.")]
         public void ShowPlatformVersions(
-            [Option('l', "latest", Description = "Whether only the latest compatible version should be shown.")]
+            [Option(ShortName = "l", LongName = "latest", Description = "Whether only the latest compatible version should be shown.")]
             bool onlyLatest = false,
-            [Option('v', "fullversion", Description = "Whether to show the full formatted version (e.g. '9.1.603.0' instead of 'O9.1').")]
+            [Option(ShortName = "v", LongName = "fullversion", Description = "Whether to show the full formatted version (e.g. '9.1.603.0' instead of 'O9.1').")]
             bool showFullVersion = false)
         {
             if (onlyLatest)
@@ -122,14 +126,14 @@ namespace OmlUtilities
             [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
             string version,
             [Operand(Description = "If set, returns only the value of the specified header.")]
-            string? headerName = null)
+            string headerName = null)
         {
             Oml oml = GetOmlInstance(input, version);
             bool found = false;
 
             foreach (PropertyInfo property in typeof(OmlHeader).GetProperties())
             {
-                OmlHeaderAttribute? attribute = (OmlHeaderAttribute?)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
+                OmlHeaderAttribute attribute = (OmlHeaderAttribute)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
 
                 if (attribute == null || !string.IsNullOrEmpty(headerName) && !headerName.Equals(property.Name, StringComparison.InvariantCultureIgnoreCase))
                 {
@@ -162,7 +166,7 @@ namespace OmlUtilities
             [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
             string version,
             [Operand(Description = "If set, prints the XML content of the desired fragment.")]
-            string? fragmentName = null)
+            string fragmentName = null)
         {
             Oml oml = GetOmlInstance(input, version);
 
@@ -195,12 +199,12 @@ namespace OmlUtilities
             string output,
             [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
             string version,
-            [Option('f', "format", Description = "Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.")]
-            string? format = null,
-            [Option('H', "header", Description = "Sets a header value. Name and value must be separated by colon (':').")]
-            List<string>? headers = null,
-            [Option('F', "fragment", Description = "Sets the content of a fragment. Name and value must be separated by colon (':').")]
-            List<string>? fragments = null)
+            [Option(ShortName = "f", LongName = "format", Description = "Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.")]
+            string format = null,
+            [Option(ShortName = "H", LongName = "header", Description = "Sets a header value. Name and value must be separated by colon (':').")]
+            List<string> headers = null,
+            [Option(ShortName = "F", LongName = "fragment", Description = "Sets the content of a fragment. Name and value must be separated by colon (':').")]
+            List<string> fragments = null)
         {
             Oml oml = GetOmlInstance(input, version);
 
@@ -227,7 +231,7 @@ namespace OmlUtilities
 
                     foreach (PropertyInfo property in typeof(OmlHeader).GetProperties())
                     {
-                        OmlHeaderAttribute? attribute = (OmlHeaderAttribute?)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
+                        OmlHeaderAttribute attribute = (OmlHeaderAttribute)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
 
                         if (attribute == null || !headerName.Equals(property.Name, StringComparison.InvariantCultureIgnoreCase))
                         {

@@ -29,7 +29,7 @@ namespace OmlUtilities.Core
         /// <returns>List of availabel fragment names.</returns>
         public List<string> GetFragmentNames()
         {
-            IEnumerable<string>? fragments = AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames");
+            IEnumerable<string> fragments = AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames");
             if (fragments == null)
             {
                 throw new Exception("Unable to get list of fragment names. Null returned.");
@@ -114,7 +114,7 @@ namespace OmlUtilities.Core
 
             try
             {
-                object? localInstance;
+                object localInstance;
 #pragma warning disable CS8625
                 if (platformVersion == PlatformVersion.O_11_0)
                 {

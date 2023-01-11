@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 
 namespace OmlUtilities.Core
 {
@@ -8,7 +11,7 @@ namespace OmlUtilities.Core
         /// Global parameter which is used for determining which assemblies to load.
         /// This must be set before using any Service Studio methods.
         /// </summary>
-        public static PlatformVersion? PlatformVersion { get; set; }
+        public static PlatformVersion PlatformVersion { get; set; }
 
         /// <summary>
         /// Loads an assembly by its assembly name.
@@ -20,7 +23,7 @@ namespace OmlUtilities.Core
         {
             string dllName = assemblyName + ".dll";
             Assembly assembly = typeof(AssemblyUtility).Assembly;
-            string? resourceName = GetAssemblyResourceName(assembly, dllName);
+            string resourceName = GetAssemblyResourceName(assembly, dllName);
 
             if (resourceName == null && PlatformVersion != null)
             {
@@ -71,7 +74,7 @@ namespace OmlUtilities.Core
                 throw new AssemblyUtilityException($"Unable to load assembly \"{assemblyName}\" with resource name \"{dllName}\".");
             }
 
-            using (Stream? stream = assembly.GetManifestResourceStream(resourceName))
+            using (Stream stream = assembly.GetManifestResourceStream(resourceName))
             {
                 if (stream == null)
                 {
@@ -102,16 +105,20 @@ namespace OmlUtilities.Core
         /// <param name="assemblyInstance">Assembly instance object.</param>
         /// <param name="fieldName">Name of the field to be fetched.</param>
         /// <returns>Value of the fetched field.</returns>
-        public static T? GetInstanceField<T>(object assemblyInstance, string fieldName)
+        public static T GetInstanceField<T>(object assemblyInstance, string fieldName)
         {
             Type assemblyType = assemblyInstance.GetType();
             BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public;
-            object? value = assemblyType.InvokeMember(fieldName, flags, null, assemblyInstance, null);
-            if (typeof(T?) == typeof(string) && value != null && value.GetType().IsEnum)
+            object value = assemblyType.InvokeMember(fieldName, flags, null, assemblyInstance, null);
+            if (value == null)
             {
-                value = value.ToString();
+                value = new object();
             }
-            return (T?)value;
+            else if (typeof(T) == typeof(string) && value.GetType().IsEnum)
+            {
+                value = value.ToString() ?? string.Empty;
+            }
+            return (T)value;
         }
 
         /// <summary>
@@ -120,11 +127,11 @@ namespace OmlUtilities.Core
         /// <param name="assemblyInstance">Assembly instance object.</param>
         /// <param name="fieldName">Name of the field to be set.</param>
         /// <param name="value">Value to be assigned to the field.</param>
-        public static void SetInstanceField(object assemblyInstance, string fieldName, object? value)
+        public static void SetInstanceField(object assemblyInstance, string fieldName, object value)
         {
             Type assemblyType = assemblyInstance.GetType();
             BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public;
-            PropertyInfo? propertyInfo = assemblyType.GetProperty(fieldName, flags);
+            PropertyInfo propertyInfo = assemblyType.GetProperty(fieldName, flags);
             if (propertyInfo == null)
             {
                 throw new AssemblyUtilityException($"Unable to set value of field \"{fieldName}\" from assembly type \"{assemblyType.Name}\". PropertyInfo returned null.");
@@ -144,11 +151,11 @@ namespace OmlUtilities.Core
         /// <param name="methodName">Name of the method to be executed.</param>
         /// <param name="args">Method arguments list.</param>
         /// <returns>Result of the executed instance method.</returns>
-        public static T? ExecuteInstanceMethod<T>(object assemblyInstance, string methodName, object[]? args = null)
+        public static T ExecuteInstanceMethod<T>(object assemblyInstance, string methodName, object[] args = null)
         {
             Type assemblyType = assemblyInstance.GetType();
             BindingFlags flags = BindingFlags.InvokeMethod | BindingFlags.Instance | BindingFlags.Public;
-            return (T?)assemblyType.InvokeMember(methodName, flags, null, assemblyInstance, args);
+            return (T)assemblyType.InvokeMember(methodName, flags, null, assemblyInstance, args);
         }
 
         /// <summary>
@@ -158,7 +165,7 @@ namespace OmlUtilities.Core
         {
             // Add versioned DLL detection
             AppDomain.CurrentDomain.AssemblyResolve += (sender, bargs) => {
-                string? assemblyName = new AssemblyName(bargs.Name).Name;
+                string assemblyName = new AssemblyName(bargs.Name).Name;
                 if (assemblyName == null)
                 {
                     throw new AssemblyUtilityException($"Unable to load assembly for \"{bargs.Name}\". Assembly name returned null.");
@@ -173,7 +180,7 @@ namespace OmlUtilities.Core
         /// <param name="assembly">Assembly of the program.</param>
         /// <param name="dllName">Name of the DLL.</param>
         /// <returns>Resource name of the assembly.</returns>
-        private static string? GetAssemblyResourceName(Assembly assembly, string dllName)
+        private static string GetAssemblyResourceName(Assembly assembly, string dllName)
         {
             return assembly.GetManifestResourceNames().FirstOrDefault(rn => rn.EndsWith(dllName));
         }

@@ -1,5 +1,11 @@
 ﻿using OmlUtilities.Core;
 using OmlUtilities;
 
-AssemblyUtility.PlatformVersion = null;
-return ProgramWorker.Run(args);
+internal class Program
+{
+    private static int Main(string[] args)
+    {
+        AssemblyUtility.PlatformVersion = null;
+        return ProgramWorker.Run(args);
+    }
+}

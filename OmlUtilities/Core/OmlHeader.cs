@@ -17,12 +17,7 @@ namespace OmlUtilities.Core
             /// <param name="oml">OML instance from which the header belongs to.</param>
             public OmlHeader(Oml oml)
             {
-                object? localInstance = AssemblyUtility.GetInstanceField<object>(oml._instance, "Header");
-                if (localInstance == null)
-                {
-                    throw new Exception("Unable to get OML headers. Null returned.");
-                }
-                _instance = localInstance;
+                _instance = AssemblyUtility.GetInstanceField<object>(oml._instance, "Header");
             }
 
             /// <summary>
@@ -133,7 +128,7 @@ namespace OmlUtilities.Core
             /// Module service studio version header.
             /// </summary>
             [OmlHeader]
-            public Version? Version
+            public Version Version
             {
                 get
                 {
@@ -149,7 +144,7 @@ namespace OmlUtilities.Core
             /// Header containing the previous service studio version before the last upgrade. 
             /// </summary>
             [OmlHeader]
-            public Version? LastUpgradeVersion
+            public Version LastUpgradeVersion
             {
                 get
                 {
