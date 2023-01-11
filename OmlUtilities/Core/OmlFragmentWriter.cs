@@ -36,12 +36,7 @@ namespace OmlUtilities.Core
             /// <param name="fragmentName">Name of the fragment to be written.</param>
             public OmlFragmentWriter(Oml oml, string fragmentName)
             {
-                object localInstance = AssemblyUtility.ExecuteInstanceMethod<object>(oml._instance, "GetFragmentXmlWriter", new object[] { fragmentName });
-                if (localInstance == null)
-                {
-                    throw new Exception("Unable to get fragment XML writer instance. Null returned.");
-                }
-                _instance = localInstance;
+                _instance = AssemblyUtility.ExecuteInstanceMethod<object>(oml._instance, "GetFragmentXmlWriter", new object[] { fragmentName });
             }
         }
     }

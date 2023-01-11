@@ -32,7 +32,7 @@ namespace OmlUtilities.Core
             IEnumerable<string> fragments = AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames");
             if (fragments == null)
             {
-                throw new Exception("Unable to get list of fragment names. Null returned.");
+                throw new OmlException("Unable to get list of fragment names. Null returned.");
             }
             return fragments.ToList();
         }
@@ -97,7 +97,7 @@ namespace OmlUtilities.Core
         {
             if (AssemblyUtility.PlatformVersion == null)
             {
-                throw new Exception("Platform version must be defined before loading the OML content.");
+                throw new OmlException("Platform version must be defined before loading the OML content.");
             }
 
             Type assemblyType;
@@ -114,22 +114,18 @@ namespace OmlUtilities.Core
 
             try
             {
-                object localInstance;
-#pragma warning disable CS8625
                 if (platformVersion == PlatformVersion.O_11_0)
                 {
-                    localInstance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
+                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
                 }
                 else
                 {
-                    localInstance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
+                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
                 }
-#pragma warning restore CS8625
-                if (localInstance == null)
+                if (_instance == null)
                 {
-                    throw new Exception("Unable to create instance of OML class. Resulting instance is null.");
+                    throw new OmlException("Unable to create instance of OML class. Resulting instance is null.");
                 }
-                _instance = localInstance;
                 Header = new OmlHeader(this);
             }
             catch(Exception e)
@@ -144,7 +140,7 @@ namespace OmlUtilities.Core
                 }
                 else
                 {
-                    throw new Exception("Unable to load OML. Make sure the given OML content is valid.", e);
+                    throw new OmlException("Unable to load OML. Make sure the given OML content is valid.", e);
                 }
             }
 

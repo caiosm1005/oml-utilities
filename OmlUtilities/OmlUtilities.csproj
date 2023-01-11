@@ -7,8 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Libs\FluentValidation.dll" />
-    <None Remove="Libs\Humanizer.dll" />
     <None Remove="Libs\ICSharpCode.SharpZipLib.0.85.5.dll" />
     <None Remove="Libs\ICSharpCode.SharpZipLib.1.1.0.dll" />
     <None Remove="Libs\Noemax.FastInfoset.4.1.5.dll" />

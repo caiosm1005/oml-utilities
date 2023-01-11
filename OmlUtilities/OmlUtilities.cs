@@ -17,30 +17,30 @@ namespace OmlUtilities
         {
             if (string.IsNullOrEmpty(path))
             {
-                throw new Exception($"The {(isInput ? "input" : "output")} argument is mandatory.");
+                throw new OmlException($"The {(isInput ? "input" : "output")} argument is mandatory.");
             }
 
             if (path.StartsWith("pipe:", StringComparison.InvariantCultureIgnoreCase))
             {
                 if (!Console.IsInputRedirected)
                 {
-                    throw new Exception($"Unable to pipe the {(isInput ? "input" : "output")} argument because the console input is not redirected.");
+                    throw new OmlException($"Unable to pipe the {(isInput ? "input" : "output")} argument because the console input is not redirected.");
                 }
 
-                string pipeIndex = path.Substring(5);
+                string pipeIndex = path[5..];
 
                 if (string.IsNullOrEmpty(pipeIndex))
                 {
                     pipeIndex = isInput ? "0" : "1";
                 }
 
-                switch(pipeIndex)
+                return pipeIndex switch
                 {
-                    case "0": return Console.OpenStandardInput();
-                    case "1": return Console.OpenStandardOutput();
-                    case "2": return Console.OpenStandardError();
-                    default: throw new Exception($"Unknown pipe index {pipeIndex} used in the {(isInput ? "input" : "output")} argument.");
-                }
+                    "0" => Console.OpenStandardInput(),
+                    "1" => Console.OpenStandardOutput(),
+                    "2" => Console.OpenStandardError(),
+                    _ => throw new OmlException($"Unknown pipe index {pipeIndex} used in the {(isInput ? "input" : "output")} argument."),
+                };
             }
             else
             {
@@ -59,11 +59,11 @@ namespace OmlUtilities
         {
             if (string.IsNullOrEmpty(input))
             {
-                throw new Exception("The input argument is mandatory.");
+                throw new OmlException("The input argument is mandatory.");
             }
             if (string.IsNullOrEmpty(version))
             {
-                throw new Exception("The platform version argument is mandatory.");
+                throw new OmlException("The platform version argument is mandatory.");
             }
 
             if (version.Equals("OL", StringComparison.InvariantCultureIgnoreCase))
@@ -73,7 +73,7 @@ namespace OmlUtilities
             else
             {
                 PlatformVersion platformVersion = PlatformVersion.Versions.FirstOrDefault(p => p.Label.Equals(version, StringComparison.InvariantCultureIgnoreCase));
-                AssemblyUtility.PlatformVersion = platformVersion ?? throw new Exception($"Platform version \"{version}\" not recognized. Please run ShowPlatformVersions in order to list supported versions.");
+                AssemblyUtility.PlatformVersion = platformVersion ?? throw new OmlException($"Platform version \"{version}\" not recognized. Please run ShowPlatformVersions in order to list supported versions.");
             }
 
             Stream stream = GetStream(input, true);
@@ -154,7 +154,7 @@ namespace OmlUtilities
 
             if (!string.IsNullOrEmpty(headerName) && !found)
             {
-                throw new Exception($"Header name \"{headerName}\" was not found.");
+                throw new OmlException($"Header name \"{headerName}\" was not found.");
             }
         }
 
@@ -183,7 +183,7 @@ namespace OmlUtilities
 
                 if (fragment == null)
                 {
-                    throw new Exception($"Unable to get XML content of fragment \"{fragmentName}\".");
+                    throw new OmlException($"Unable to get XML content of fragment \"{fragmentName}\".");
                 }
 
                 Console.WriteLine(fragment.ToString(SaveOptions.DisableFormatting));
@@ -217,14 +217,14 @@ namespace OmlUtilities
 
                     if (colonIndex == -1)
                     {
-                        throw new Exception($"Unable to parse header value \"{headerLine}\". Name and value must be separated by colon (':').");
+                        throw new OmlException($"Unable to parse header value \"{headerLine}\". Name and value must be separated by colon (':').");
                     }
 
-                    string headerName = headerLine.Substring(0, colonIndex);
+                    string headerName = headerLine[..colonIndex];
 
                     if (string.IsNullOrEmpty(headerName))
                     {
-                        throw new Exception("The header name in the header parameter is mandatory.");
+                        throw new OmlException("The header name in the header parameter is mandatory.");
                     }
 
                     bool found = false;
@@ -240,17 +240,17 @@ namespace OmlUtilities
 
                         if (attribute.IsReadOnly)
                         {
-                            throw new Exception($"Cannot change header \"{property.Name}\" because it is read-only.");
+                            throw new OmlException($"Cannot change header \"{property.Name}\" because it is read-only.");
                         }
 
-                        string headerValue = headerLine.Substring(colonIndex + 1);
+                        string headerValue = headerLine[(colonIndex + 1)..];
                         property.SetValue(oml.Header, headerValue);
                         found = true;
                     }
 
                     if (!found)
                     {
-                        throw new Exception($"Header name \"{headerName}\" was not found.");
+                        throw new OmlException($"Header name \"{headerName}\" was not found.");
                     }
                 }
             }
@@ -264,17 +264,17 @@ namespace OmlUtilities
 
                     if (colonIndex == -1)
                     {
-                        throw new Exception($"Unable to parse fragment value \"{fragmentLine}\". Name and value must be separated by colon (':').");
+                        throw new OmlException($"Unable to parse fragment value \"{fragmentLine}\". Name and value must be separated by colon (':').");
                     }
 
-                    string fragmentName = fragmentLine.Substring(0, colonIndex);
+                    string fragmentName = fragmentLine[..colonIndex];
 
                     if (string.IsNullOrEmpty(fragmentName))
                     {
-                        throw new Exception("The fragment name in the fragment parameter is mandatory.");
+                        throw new OmlException("The fragment name in the fragment parameter is mandatory.");
                     }
 
-                    XElement fragment = XElement.Parse(fragmentLine.Substring(colonIndex + 1));
+                    XElement fragment = XElement.Parse(fragmentLine[(colonIndex + 1)..]);
                     oml.SetFragmentXml(fragmentName, fragment);
                 }
             }
