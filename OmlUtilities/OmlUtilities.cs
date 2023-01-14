@@ -123,8 +123,8 @@ namespace OmlUtilities
         public void ShowHeaders(
             [Operand(Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
             string input,
-            [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
-            string version,
+            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
+            string version = "OL",
             [Operand(Description = "If set, returns only the value of the specified header.")]
             string headerName = null)
         {
@@ -163,8 +163,8 @@ namespace OmlUtilities
         public void ShowFragments(
             [Operand(Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
             string input,
-            [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
-            string version,
+            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
+            string version = "OL",
             [Operand(Description = "If set, prints the XML content of the desired fragment.")]
             string fragmentName = null)
         {
@@ -197,8 +197,8 @@ namespace OmlUtilities
             string input,
             [Operand(Description = "Destination path to save the manipulated OML file. It is possible to send the data stream to stdout instead by using UNIX pipe access syntax (e.g.: 'pipe:').")]
             string output,
-            [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
-            string version,
+            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
+            string version = "OL",
             [Option(ShortName = "f", LongName = "format", Description = "Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.")]
             string format = null,
             [Option(ShortName = "H", LongName = "header", Description = "Sets a header value. Name and value must be separated by colon (':').")]
@@ -304,8 +304,8 @@ namespace OmlUtilities
             string omlPathDir,
             [Operand(Description = "Text to be searched inside an OML file.")]
             string keywordSearch,
-            [Operand(Description = "Target platform version to use for loading the OML file. For the latest compatible version, use the value 'OL'.")]
-            string version)
+            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
+            string version = "OL")
         {
             if (string.IsNullOrEmpty(keywordSearch)) {
                 Console.WriteLine("Please inform a expression for search and try again.");
