@@ -165,7 +165,17 @@ namespace OmlUtilities
                 {
                     continue;
                 }
-                Console.WriteLine("{0},{1},{2}:{3}", headerPair.Value.IsReadOnly ? "ReadOnly" : "Writable", headerPair.Value.HeaderType.Name, headerPair.Key, headerPair.Value.GetValue<string>());
+
+                string headerValue = headerPair.Value.GetValue<string>();
+
+                // Apply URL encoding (so that we encode newline characters)
+                headerValue = headerValue
+                    .Replace("%",  "%25")
+                    .Replace(":",  "%3A")
+                    .Replace(",",  "%2C")
+                    .Replace("\n", "%0A");
+
+                Console.WriteLine("{0},{1},{2}:{3}", headerPair.Value.IsReadOnly ? "ReadOnly" : "Writable", headerPair.Value.HeaderType.Name, headerPair.Key, headerValue);
                 found = true;
             }
 

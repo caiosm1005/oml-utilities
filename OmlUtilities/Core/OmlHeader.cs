@@ -77,9 +77,6 @@ namespace OmlUtilities.Core
                     {
                         value = value.ToString();
                     }
-
-                    // Escape backslashes and line breaks
-                    value = ((string)value).Replace(@"\", @"\\").Replace("\n", "\\\n");
                 }
 
                 return (T)value;
