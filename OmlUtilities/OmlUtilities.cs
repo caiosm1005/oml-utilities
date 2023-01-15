@@ -4,10 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
+using System.Reflection.PortableExecutable;
 using System.Xml.Linq;
 using static OmlUtilities.Core.Oml;
-using static OmlUtilities.Core.Oml.OmlHeader;
 
 namespace OmlUtilities
 {
@@ -61,19 +60,15 @@ namespace OmlUtilities
             {
                 throw new OmlException("The input argument is mandatory.");
             }
-            if (string.IsNullOrEmpty(version))
-            {
-                throw new OmlException("The platform version argument is mandatory.");
-            }
 
-            if (version.Equals("OL", StringComparison.InvariantCultureIgnoreCase))
+            if (string.IsNullOrEmpty(version))
             {
                 AssemblyUtility.PlatformVersion = PlatformVersion.LatestSupportedVersion;
             }
             else
             {
                 PlatformVersion platformVersion = PlatformVersion.Versions.FirstOrDefault(p => p.Label.Equals(version, StringComparison.InvariantCultureIgnoreCase));
-                AssemblyUtility.PlatformVersion = platformVersion ?? throw new OmlException($"Platform version \"{version}\" not recognized. Please run ShowPlatformVersions in order to list supported versions.");
+                AssemblyUtility.PlatformVersion = platformVersion ?? throw new OmlException($"Platform version \"{platformVersion}\" not recognized. Please run 'show-platform-versions' in order to list supported versions.");
             }
 
             Stream stream = GetStream(input, true);
@@ -85,7 +80,7 @@ namespace OmlUtilities
             else
             {
                 MemoryStream memoryStream = new MemoryStream();
-                byte[] buffer = new byte[32 * 1024]; // 32K buffer for example
+                byte[] buffer = new byte[32 * 1024];
                 int bytesRead;
                 while ((bytesRead = stream.Read(buffer, 0, buffer.Length)) > 0)
                 {
@@ -97,12 +92,25 @@ namespace OmlUtilities
             }
         }
 
-        [Command(Description = "Displays a list of compatible platform versions.",
-        ExtendedHelpText = "Displays a list of Service Studio versions that this utility is compatible with for loading and saving OML files.")]
+        /// <summary>
+        /// Displays a list of Service Studio versions that this utility is compatible with for loading and saving OML files.
+        /// </summary>
+        /// <param name="onlyLatest">Whether only the latest compatible version should be shown.</param>
+        /// <param name="showFullVersion">Whether to show the full formatted version (e.g.: '9.1.603.0' instead of 'O9.1').</param>
+        [Command(
+            Name = "show-platform-versions",
+            Description = "Displays a list of compatible platform versions.",
+            ExtendedHelpText = "Displays a list of Service Studio versions that this utility is compatible with for loading and saving OML files.")]
         public void ShowPlatformVersions(
-            [Option(ShortName = "l", LongName = "latest", Description = "Whether only the latest compatible version should be shown.")]
+            [Option(
+                ShortName = "l",
+                LongName = "latest",
+                Description = "Whether only the latest compatible version should be shown.")]
             bool onlyLatest = false,
-            [Option(ShortName = "v", LongName = "fullversion", Description = "Whether to show the full formatted version (e.g. '9.1.603.0' instead of 'O9.1').")]
+            [Option(
+                ShortName = "f",
+                LongName = "full-version",
+                Description = "Whether to show the full formatted version (e.g.: '9.1.603.0' instead of 'O9.1').")]
             bool showFullVersion = false)
         {
             if (onlyLatest)
@@ -118,37 +126,46 @@ namespace OmlUtilities
             }
         }
 
-        [Command(Description = "Prints header values.",
-        ExtendedHelpText = "Displays a list containing key:value pairs of headers of the given OML file. These header values can be changed through the Manipulate command.")]
+        /// <summary>
+        /// Displays a list of headers of the given OML file. Header values can be changed using the 'manipulate' command.
+        /// 
+        /// Headers are shown in the following format: [Writable|ReadOnly],[DataType],[HeaderName]:[HeaderValue].
+        /// </summary>
+        /// <param name="input">Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').</param>
+        /// <param name="headerName">If set, returns only the specified header.</param>
+        /// <param name="version">Platform version to be used for decoding the OML file.</param>
+        /// <exception cref="OmlException">Throws an exception if an invalid header name is provided.</exception>
+        [Command(
+            Name = "show-headers",
+            Description = "Prints header values.",
+            ExtendedHelpText = "Displays a list of headers of the given OML file. Header values can be changed using the 'manipulate' command.\n\n" +
+                "Headers are shown in the following format: [Writable|ReadOnly],[DataType],[HeaderName]:[HeaderValue].")]
         public void ShowHeaders(
-            [Operand(Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
+            [Operand(
+                Name = "input",
+                Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
             string input,
-            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
-            string version = "OL",
-            [Operand(Description = "If set, returns only the value of the specified header.")]
-            string headerName = null)
+            [Operand(
+                Name = "header-name",
+                Description = "If set, returns only the specified header.")]
+            string headerName = null,
+            [Option(
+                ShortName = "v",
+                LongName = "version",
+                Description = "Platform version (e.g.: 'O11') to be used for decoding the OML file. If not set, will use the latest version available.")]
+            string version = null)
         {
+            // Get OML instance
             Oml oml = GetOmlInstance(input, version);
             bool found = false;
 
-            foreach (PropertyInfo property in typeof(OmlHeader).GetProperties())
+            foreach (KeyValuePair<string, OmlHeader> headerPair in oml.Headers)
             {
-                OmlHeaderAttribute attribute = (OmlHeaderAttribute)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
-
-                if (attribute == null || !string.IsNullOrEmpty(headerName) && !headerName.Equals(property.Name, StringComparison.InvariantCultureIgnoreCase))
+                if (!string.IsNullOrEmpty(headerName) && !headerName.Equals(headerPair.Key))
                 {
                     continue;
                 }
-
-                if (!string.IsNullOrEmpty(headerName))
-                {
-                    Console.WriteLine(property.GetValue(oml.Header, null));
-                }
-                else
-                {
-                    Console.WriteLine("{0}:{1}", property.Name, property.GetValue(oml.Header, null));
-                }
-
+                Console.WriteLine("{0},{1},{2}:{3}", headerPair.Value.IsReadOnly ? "ReadOnly" : "Writable", headerPair.Value.HeaderType.Name, headerPair.Key, headerPair.Value.GetValue<string>());
                 found = true;
             }
 
@@ -158,16 +175,32 @@ namespace OmlUtilities
             }
         }
 
-        [Command(Description = "Prints fragment data.",
-        ExtendedHelpText = "Lists fragment names or prints its XML content if the fragment name is specified.")]
+        /// <summary>
+        /// Lists fragment names or prints its XML content if the fragment name is specified.
+        /// </summary>
+        /// <param name="input">Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').</param>
+        /// <param name="fragmentName">If set, prints the XML content of the desired fragment.</param>
+        /// <param name="version">Platform version to be used for decoding the OML file.</param>
+        [Command(
+            Name = "show-fragments",
+            Description = "Prints fragment data.",
+            ExtendedHelpText = "Lists fragment names or prints its XML content if the fragment name is specified.")]
         public void ShowFragments(
-            [Operand(Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
+            [Operand(
+                Name = "input",
+                Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
             string input,
-            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
-            string version = "OL",
-            [Operand(Description = "If set, prints the XML content of the desired fragment.")]
-            string fragmentName = null)
+            [Operand(
+                Name = "fragment-name",
+                Description = "If set, prints the XML content of the desired fragment.")]
+            string fragmentName = null,
+            [Option(
+                ShortName = "v",
+                LongName = "version",
+                Description = "Platform version (e.g.: 'O11') to be used for decoding the OML file. If not set, will use the latest version available.")]
+            string version = null)
         {
+            // Get OML instance
             Oml oml = GetOmlInstance(input, version);
 
             if (string.IsNullOrEmpty(fragmentName))
@@ -180,32 +213,54 @@ namespace OmlUtilities
             else
             {
                 XElement fragment = oml.GetFragmentXml(fragmentName);
-
-                if (fragment == null)
-                {
-                    throw new OmlException($"Unable to get XML content of fragment \"{fragmentName}\".");
-                }
-
                 Console.WriteLine(fragment.ToString(SaveOptions.DisableFormatting));
             }
         }
 
-        [Command(Description = "Manipulates an OML file.",
-        ExtendedHelpText = "Opens an OML file in order to manipulate and save it.")]
+        /// <summary>
+        /// Opens an OML file in order to manipulate and save it.
+        /// </summary>
+        /// <param name="input">Path to the OML file to be loaded.</param>
+        /// <param name="output">Destination path to save the manipulated OML file.</param>
+        /// <param name="format">Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.</param>
+        /// <param name="headers">Sets a header value. Name and value must be separated by colon (':').</param>
+        /// <param name="fragments">Sets the content of a fragment. Name and value must be separated by colon (':').</param>
+        /// <param name="version">Platform version to be used for decoding the OML file.</param>
+        [Command(
+            Name = "manipulate",
+            Description = "Manipulates an OML file.",
+            ExtendedHelpText = "Opens an OML file in order to manipulate and save it.")]
         public void Manipulate(
-            [Operand(Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
+            [Operand(
+                Name = "input",
+                Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
             string input,
-            [Operand(Description = "Destination path to save the manipulated OML file. It is possible to send the data stream to stdout instead by using UNIX pipe access syntax (e.g.: 'pipe:').")]
+            [Operand(
+                Name = "output",
+                Description = "Destination path to save the manipulated OML file. It is possible to send the data stream to stdout instead by using UNIX pipe access syntax (e.g.: 'pipe:').")]
             string output,
-            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
-            string version = "OL",
-            [Option(ShortName = "f", LongName = "format", Description = "Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.")]
+            [Option(
+                ShortName = "f",
+                LongName = "format",
+                Description = "Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.")]
             string format = null,
-            [Option(ShortName = "H", LongName = "header", Description = "Sets a header value. Name and value must be separated by colon (':').")]
+            [Option(
+                ShortName = "H",
+                LongName = "header",
+                Description = "Sets a header value. Name and value must be separated by colon (e.g.: 'Description:Hello, World!').")]
             List<string> headers = null,
-            [Option(ShortName = "F", LongName = "fragment", Description = "Sets the content of a fragment. Name and value must be separated by colon (':').")]
-            List<string> fragments = null)
+            [Option(
+                ShortName = "F",
+                LongName = "fragment",
+                Description = "Saves a fragment XML into the OML file.")]
+            List<string> fragments = null,
+            [Option(
+                ShortName = "v",
+                LongName = "version",
+                Description = "Platform version (e.g.: 'O11') to be used for decoding the OML file. If not set, will use the latest version available.")]
+            string version = null)
         {
+            // Get OML instance
             Oml oml = GetOmlInstance(input, version);
 
             // Set headers
@@ -227,31 +282,14 @@ namespace OmlUtilities
                         throw new OmlException("The header name in the header parameter is mandatory.");
                     }
 
-                    bool found = false;
-
-                    foreach (PropertyInfo property in typeof(OmlHeader).GetProperties())
-                    {
-                        OmlHeaderAttribute attribute = (OmlHeaderAttribute)Attribute.GetCustomAttribute(property, typeof(OmlHeaderAttribute));
-
-                        if (attribute == null || !headerName.Equals(property.Name, StringComparison.InvariantCultureIgnoreCase))
-                        {
-                            continue;
-                        }
-
-                        if (attribute.IsReadOnly)
-                        {
-                            throw new OmlException($"Cannot change header \"{property.Name}\" because it is read-only.");
-                        }
-
-                        string headerValue = headerLine[(colonIndex + 1)..];
-                        property.SetValue(oml.Header, headerValue);
-                        found = true;
-                    }
-
-                    if (!found)
+                    if (!oml.Headers.ContainsKey(headerName))
                     {
                         throw new OmlException($"Header name \"{headerName}\" was not found.");
                     }
+
+                    OmlHeader header = oml.Headers[headerName];
+                    string headerValue = headerLine[(colonIndex + 1)..];
+                    header.SetValue(headerValue);
                 }
             }
 
@@ -260,22 +298,8 @@ namespace OmlUtilities
             {
                 foreach (string fragmentLine in fragments)
                 {
-                    int colonIndex = fragmentLine.IndexOf(':');
-
-                    if (colonIndex == -1)
-                    {
-                        throw new OmlException($"Unable to parse fragment value \"{fragmentLine}\". Name and value must be separated by colon (':').");
-                    }
-
-                    string fragmentName = fragmentLine[..colonIndex];
-
-                    if (string.IsNullOrEmpty(fragmentName))
-                    {
-                        throw new OmlException("The fragment name in the fragment parameter is mandatory.");
-                    }
-
-                    XElement fragment = XElement.Parse(fragmentLine[(colonIndex + 1)..]);
-                    oml.SetFragmentXml(fragmentName, fragment);
+                    XElement fragmentXml = XElement.Parse(fragmentLine);
+                    oml.SetFragmentXml(fragmentXml);
                 }
             }
 
@@ -296,30 +320,45 @@ namespace OmlUtilities
             outputStream.Close();
         }
 
-
-        [Command(Description = "Search for a text inside an OML file.",
-        ExtendedHelpText = "Perform a textual search for any expression inside an OML file.")]
+        /// <summary>
+        /// Performs a textual search for any expression inside an OML file.
+        /// </summary>
+        /// <param name="omlPathDir">Path to the directory with OML files to be examined.</param>
+        /// <param name="keywordSearch">Text to be searched inside an OML file.</param>
+        /// <param name="version">Platform version to be used for decoding the OML file.</param>
+        [Command(
+            Name = "text-search",
+            Description = "Search for a text inside an OML file.",
+            ExtendedHelpText = "Performs a textual search for any expression inside an OML file.")]
         public void TextSearch(
-            [Operand(Description = "Path to the directory with OML files to be examined.")]
+            [Operand(
+                Name = "oml-path-dir",
+                Description = "Path to the directory with OML files to be examined.")]
             string omlPathDir,
-            [Operand(Description = "Text to be searched inside an OML file.")]
+            [Operand(
+                Name = "keyword-search",
+                Description = "Text to be searched inside an OML file.")]
             string keywordSearch,
-            [Operand(Description = "Target platform version to use for loading the OML file. Defaults to the latest compatible version ('OL').")]
-            string version = "OL")
+            [Option(
+                ShortName = "v",
+                LongName = "version",
+                Description = "Platform version (e.g.: 'O11') to be used for decoding the OML file. If not set, will use the latest version available.")]
+            string version = null)
         {
-            if (string.IsNullOrEmpty(keywordSearch)) {
-                Console.WriteLine("Please inform a expression for search and try again.");
+            if (string.IsNullOrEmpty(keywordSearch))
+            {
+                Console.WriteLine("Please inform a keyword-search value and try again.");
             }
             else
             {
-                Console.WriteLine("Search for keyword '{0}'", keywordSearch);
+                Console.WriteLine($"Searching for keyword '{keywordSearch}'");
             }
 
             if (Directory.Exists(omlPathDir))
             {
                 var watch = System.Diagnostics.Stopwatch.StartNew();
 
-                Console.WriteLine("Search OMLs inside of {0} ...", omlPathDir);
+                Console.WriteLine("Searching OMLs inside of {0} ...", omlPathDir);
 
                 DirectoryInfo omlDir = new DirectoryInfo(omlPathDir);
                 FileInfo[] Files = omlDir.GetFiles("*.oml");
@@ -344,11 +383,11 @@ namespace OmlUtilities
 
                         }
 
-                        Console.WriteLine("[{0}/{1}] - {2} ocurrences found in {3}.", ++CountFile, Files.Count(), count, file);
+                        Console.WriteLine("[{0}/{1}] - {2} occurrences found in {3}.", ++CountFile, Files.Count(), count, file);
                     }
                     catch(Exception err)
                     {
-                        Console.WriteLine("[{0}/{1}] - Error ocurred parsing file: {2}", ++CountFile, Files.Count(), err.Message.Replace("\n", ""));
+                        Console.WriteLine("[{0}/{1}] - Error occurred parsing file: {2}", ++CountFile, Files.Count(), err.Message.Replace("\n", ""));
                     }
                 }
 

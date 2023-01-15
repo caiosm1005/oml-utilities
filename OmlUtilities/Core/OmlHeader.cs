@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 
 namespace OmlUtilities.Core
 {
@@ -12,159 +13,129 @@ namespace OmlUtilities.Core
             protected object _instance;
 
             /// <summary>
-            /// Class representing the main headers of the OML, allowing value modifications.
+            /// Name of the header.
+            /// </summary>
+            public string HeaderName { get; }
+
+            /// <summary>
+            /// Header instance type.
+            /// </summary>
+            public Type HeaderType { get; }
+
+            /// <summary>
+            /// Whether this header is read-only or writable.
+            /// </summary>
+            public bool IsReadOnly { get; }
+
+            /// <summary>
+            /// Class representing a header of the OML, allowing value modifications.
             /// </summary>
             /// <param name="oml">OML instance from which the header belongs to.</param>
-            public OmlHeader(Oml oml)
+            /// <param name="headerName">Name of the header.</param>
+            /// <param name="headerType">Instance type of the header.</param>
+            /// <param name="isReadOnly">Whether this header is read-only or writable.</param>
+            public OmlHeader(Oml oml, string headerName, Type headerType, bool isReadOnly = false)
             {
-                _instance = AssemblyUtility.GetInstanceField<object>(oml._instance, "Header");
+                _instance = AssemblyUtility.GetInstanceField(oml._instance, "Header");
+
+                // Validate the provided type
+                Type valueType = AssemblyUtility.GetInstanceField(_instance, headerName).GetType();
+                if (!valueType.Equals(headerType) && !(headerType.Equals(typeof(string)) && valueType.IsEnum))
+                {
+                    throw new OmlException($"Type mismatch for header '{headerName}'. Expected '{valueType.Name}', got '{headerType.Name}'.");
+                }
+
+                HeaderName = headerName;
+                HeaderType = headerType;
+                IsReadOnly = isReadOnly;
             }
 
             /// <summary>
-            /// Activation code header (read-only).
+            /// Gets the value of this OML header.
             /// </summary>
-            [OmlHeader(IsReadOnly = true)]
-            public string ActivationCode
+            /// <typeparam name="T">Type to cast the OML header value to.</typeparam>
+            /// <returns>Requested OML header value.</returns>
+            public T GetValue<T>()
             {
-                get
+                object value = AssemblyUtility.GetInstanceField(_instance, HeaderName);
+
+                if (typeof(T).Equals(typeof(string)))
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "ActivationCode") ?? string.Empty;
+                    if (value == null)
+                    {
+                        value = string.Empty;
+                    }
+                    else if (value is DateTime dateTime)
+                    {
+                        value = dateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                    }
+                    else if (value.GetType().IsEnum)
+                    {
+                        value = Enum.GetName(value.GetType(), value);
+                    }
+                    else
+                    {
+                        value = value.ToString();
+                    }
+
+                    // Escape backslashes and line breaks
+                    value = ((string)value).Replace(@"\", @"\\").Replace("\n", "\\\n");
                 }
+
+                return (T)value;
             }
 
             /// <summary>
-            /// Module name header.
+            /// Sets the value of this OML header.
             /// </summary>
-            [OmlHeader]
-            public string Name
+            /// <param name="value">Value to be set.</param>
+            /// <exception cref="OmlException">Thrown if this header is read-only, or if the provided object type is not compatible with the header instance type.</exception>
+            public void SetValue(object value)
             {
-                get
+                if (IsReadOnly)
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "Name") ?? string.Empty;
+                    throw new OmlException($"Cannot set header '{HeaderName}' because it's read-only.");
                 }
-                set
-                {
-                    AssemblyUtility.SetInstanceField(_instance, "Name", value);
-                }
-            }
 
-            /// <summary>
-            /// Module description header.
-            /// </summary>
-            [OmlHeader]
-            public string Description
-            {
-                get
-                {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "Description") ?? string.Empty;
-                }
-                set
-                {
-                    AssemblyUtility.SetInstanceField(_instance, "Description", value);
-                }
-            }
+                object oldValue = AssemblyUtility.GetInstanceField(_instance, HeaderName);
+                Type type = oldValue.GetType();
 
-            /// <summary>
-            /// Module type.
-            /// </summary>
-            [OmlHeader]
-            public string Type
-            {
-                get
+                if (value == null || value.GetType().Equals(type))
                 {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "ESpaceType") ?? string.Empty;
+                    // Do nothing -- we'll just use value as-is
                 }
-                set
+                else if (value is string valueString)
                 {
-                    AssemblyUtility.SetInstanceField(_instance, "ESpaceType", value);
+                    if (type.IsEnum)
+                    {
+                        if (!Enum.TryParse(type, valueString, false, out value))
+                        {
+                            throw new OmlException($"Header '{HeaderName}' was provided with an unknown value '{valueString}' for enumerator of type '{type.Name}'.");
+                        }
+                    }
+                    else if (type.Equals(typeof(DateTime)))
+                    {
+                        value = DateTime.ParseExact(valueString, "yyyy-MM-dd HH:mm:ss", null);
+                    }
+                    else if (type.Equals(typeof(Version)))
+                    {
+                        value = Version.Parse(valueString);
+                    }
+                    else if (type.Equals(typeof(bool)))
+                    {
+                        value = valueString.Equals("true", StringComparison.InvariantCultureIgnoreCase);
+                    }
+                    else
+                    {
+                        throw new OmlException($"Header '{HeaderName}' was provided a string value that could not be converted to '{type.Name}'.");
+                    }
                 }
-            }
+                else
+                {
+                    throw new OmlException($"Header '{HeaderName}' was provided a value with an incompatible type. Expected '{type.Name}', received '{value.GetType().Name}'.");
+                }
 
-            /// <summary>
-            /// Header representing the last time the module was modified.
-            /// </summary>
-            [OmlHeader]
-            public DateTime LastModifiedUTC
-            {
-                get
-                {
-                    return AssemblyUtility.GetInstanceField<DateTime>(_instance, "LastModifiedUTC");
-                }
-                set
-                {
-                    AssemblyUtility.SetInstanceField(_instance, "LastModifiedUTC", value);
-                }
-            }
-
-            /// <summary>
-            /// Whether the module must open in recovery mode.
-            /// </summary>
-            [OmlHeader]
-            public bool NeedsRecover
-            {
-                get
-                {
-                    return AssemblyUtility.GetInstanceField<bool>(_instance, "NeedsRecover");
-                }
-                set
-                {
-                    AssemblyUtility.SetInstanceField(_instance, "NeedsRecover", value);
-                }
-            }
-
-            /// <summary>
-            /// Module signature header (read-only).
-            /// </summary>
-            [OmlHeader(IsReadOnly = true)]
-            public string Signature
-            {
-                get
-                {
-                    return AssemblyUtility.GetInstanceField<string>(_instance, "Signature") ?? string.Empty;
-                }
-            }
-
-            /// <summary>
-            /// Module service studio version header.
-            /// </summary>
-            [OmlHeader]
-            public Version Version
-            {
-                get
-                {
-                    return AssemblyUtility.GetInstanceField<Version>(_instance, "Version");
-                }
-                set
-                {
-                    AssemblyUtility.SetInstanceField(_instance, "Version", value);
-                }
-            }
-
-            /// <summary>
-            /// Header containing the previous service studio version before the last upgrade. 
-            /// </summary>
-            [OmlHeader]
-            public Version LastUpgradeVersion
-            {
-                get
-                {
-                    return AssemblyUtility.GetInstanceField<Version>(_instance, "LastUpgradeVersion");
-                }
-                set
-                {
-                    AssemblyUtility.SetInstanceField(_instance, "LastUpgradeVersion", value);
-                }
-            }
-
-            /// <summary>
-            /// Custom attribute for OML header parameters.
-            /// </summary>
-            public sealed class OmlHeaderAttribute : Attribute
-            {
-                /// <summary>
-                /// Whether the attribute is read-only.
-                /// </summary>
-                public bool IsReadOnly;
+                AssemblyUtility.SetInstanceField(_instance, HeaderName, value);
             }
         }
     }

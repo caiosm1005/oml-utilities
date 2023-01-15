@@ -66,7 +66,7 @@ namespace OmlUtilities.Core
         {
             get
             {
-                return Versions[Versions.Length - 1];
+                return Versions[^1];
             }
         }
     }

@@ -74,16 +74,10 @@ namespace OmlUtilities.Core
                 throw new AssemblyUtilityException($"Unable to load assembly \"{assemblyName}\" with resource name \"{dllName}\".");
             }
 
-            using (Stream stream = assembly.GetManifestResourceStream(resourceName))
-            {
-                if (stream == null)
-                {
-                    throw new AssemblyUtilityException($"Unable to get manifest resource stream for assembly \"{assemblyName}\" with resource name \"{dllName}\".");
-                }
-                byte[] assemblyData = new byte[stream.Length];
-                stream.Read(assemblyData, 0, assemblyData.Length);
-                return Assembly.Load(assemblyData);
-            }
+            using Stream stream = assembly.GetManifestResourceStream(resourceName);
+            byte[] assemblyData = new byte[stream.Length];
+            stream.Read(assemblyData, 0, assemblyData.Length);
+            return Assembly.Load(assemblyData);
         }
 
         /// <summary>
@@ -105,20 +99,11 @@ namespace OmlUtilities.Core
         /// <param name="assemblyInstance">Assembly instance object.</param>
         /// <param name="fieldName">Name of the field to be fetched.</param>
         /// <returns>Value of the fetched field.</returns>
-        public static T GetInstanceField<T>(object assemblyInstance, string fieldName)
+        public static object GetInstanceField(object assemblyInstance, string fieldName)
         {
             Type assemblyType = assemblyInstance.GetType();
             BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public;
-            object value = assemblyType.InvokeMember(fieldName, flags, null, assemblyInstance, null);
-            if (value == null)
-            {
-                value = new object();
-            }
-            else if (typeof(T) == typeof(string) && value.GetType().IsEnum)
-            {
-                value = value.ToString() ?? string.Empty;
-            }
-            return (T)value;
+            return assemblyType.InvokeMember(fieldName, flags, null, assemblyInstance, null);
         }
 
         /// <summary>
@@ -132,14 +117,6 @@ namespace OmlUtilities.Core
             Type assemblyType = assemblyInstance.GetType();
             BindingFlags flags = BindingFlags.GetField | BindingFlags.GetProperty | BindingFlags.Instance | BindingFlags.Public;
             PropertyInfo propertyInfo = assemblyType.GetProperty(fieldName, flags);
-            if (propertyInfo == null)
-            {
-                throw new AssemblyUtilityException($"Unable to set value of field \"{fieldName}\" from assembly type \"{assemblyType.Name}\". PropertyInfo returned null.");
-            }
-            if (value is string && propertyInfo.PropertyType.IsEnum)
-            {
-                value = Enum.Parse(propertyInfo.PropertyType, (string)value);
-            }
             propertyInfo.SetValue(assemblyInstance, value, null);
         }
 

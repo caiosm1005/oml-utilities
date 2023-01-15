@@ -16,12 +16,12 @@ namespace OmlUtilities.Core
         /// <summary>
         /// Platform version used for loading the OML contents.
         /// </summary>
-        public PlatformVersion platformVersion { get; }
+        public PlatformVersion PlatformVersion { get; }
 
         /// <summary>
-        /// OML header class instance.
+        /// Dictionary of OML headers.
         /// </summary>
-        public OmlHeader Header { get; }
+        public Dictionary<string, OmlHeader> Headers { get; }
 
         /// <summary>
         /// Returns a list of available fragment names.
@@ -29,12 +29,7 @@ namespace OmlUtilities.Core
         /// <returns>List of availabel fragment names.</returns>
         public List<string> GetFragmentNames()
         {
-            IEnumerable<string> fragments = AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames");
-            if (fragments == null)
-            {
-                throw new OmlException("Unable to get list of fragment names. Null returned.");
-            }
-            return fragments.ToList();
+            return AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames").ToList();
         }
 
         /// <summary>
@@ -45,9 +40,10 @@ namespace OmlUtilities.Core
         public XElement GetFragmentXml(string fragmentName)
         {
             OmlFragmentReader reader = new OmlFragmentReader(this, fragmentName);
-            XElement element = reader.GetXElement();
+            XElement fragmentXml = reader.GetXElement();
             reader.Close();
-            return element;
+            fragmentXml.SetAttributeValue("FragmentName", fragmentName);
+            return fragmentXml;
         }
 
         /// <summary>
@@ -55,8 +51,21 @@ namespace OmlUtilities.Core
         /// </summary>
         /// <param name="fragmentName">Name of the fragment to be set.</param>
         /// <param name="fragmentXml">New XML contents of the fragment.</param>
-        public void SetFragmentXml(string fragmentName, XElement fragmentXml)
+        public void SetFragmentXml(XElement fragmentXml)
         {
+            // Make a copy of the provided XElement
+            fragmentXml = new XElement(fragmentXml);
+
+            // Get fragment name attribute and remove it from XElement
+            var fragmentNameAttribute = fragmentXml.Attribute("FragmentName");
+            if (fragmentNameAttribute == null)
+            {
+                throw new OmlException("The provided fragment XML does not have a 'FragmentName' attribute.");
+            }
+            string fragmentName = fragmentNameAttribute.Value;
+            fragmentNameAttribute.Remove();
+
+            // Write fragment
             OmlFragmentWriter writer = new OmlFragmentWriter(this, fragmentName);
             writer.Write(fragmentXml);
             writer.Close();
@@ -101,9 +110,9 @@ namespace OmlUtilities.Core
             }
 
             Type assemblyType;
-            platformVersion = AssemblyUtility.PlatformVersion;
+            PlatformVersion = AssemblyUtility.PlatformVersion;
 
-            if (platformVersion == PlatformVersion.O_11_0)
+            if (PlatformVersion == PlatformVersion.O_11_0)
             {
                 assemblyType = AssemblyUtility.GetAssemblyType("OutSystems.Model.Implementation", "OutSystems.Model.Implementation.Oml.Oml");
             }
@@ -114,7 +123,7 @@ namespace OmlUtilities.Core
 
             try
             {
-                if (platformVersion == PlatformVersion.O_11_0)
+                if (PlatformVersion == PlatformVersion.O_11_0)
                 {
                     _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
                 }
@@ -122,17 +131,34 @@ namespace OmlUtilities.Core
                 {
                     _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
                 }
-                if (_instance == null)
+
+                // Create OML headers
+                var headerList = new List<OmlHeader>
                 {
-                    throw new OmlException("Unable to create instance of OML class. Resulting instance is null.");
-                }
-                Header = new OmlHeader(this);
+                    new OmlHeader(this, "ActivationCode",       typeof(string), true),
+                    new OmlHeader(this, "Name",                 typeof(string)),
+                    new OmlHeader(this, "Description",          typeof(string)),
+                    new OmlHeader(this, "ESpaceType",           typeof(string)),
+                    new OmlHeader(this, "LastModifiedUTC",      typeof(DateTime)),
+                    new OmlHeader(this, "NeedsRecover",         typeof(bool)),
+                    new OmlHeader(this, "Signature",            typeof(string), true),
+                    new OmlHeader(this, "Version",              typeof(Version)),
+                    new OmlHeader(this, "LastUpgradeVersion",   typeof(Version))
+                };
+                Headers = headerList.ToDictionary(keySelector: e => e.HeaderName);
+
+                // Set OML version to the current version
+                Headers["Version"].SetValue(PlatformVersion.Version);
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 if (e.GetBaseException() is AssemblyUtilityException)
                 {
                     throw e.GetBaseException();
+                }
+                else if (e is OmlException)
+                {
+                    throw e;
                 }
                 else if (e.InnerException != null && e.InnerException.GetType().Name.Equals("UnsupportedNewerVersion"))
                 {
@@ -143,9 +169,6 @@ namespace OmlUtilities.Core
                     throw new OmlException("Unable to load OML. Make sure the given OML content is valid.", e);
                 }
             }
-
-            // Set OML version to the current version
-            Header.Version = platformVersion.Version;
         }
     }
 }
