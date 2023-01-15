@@ -139,7 +139,8 @@ namespace OmlUtilities
             Name = "show-headers",
             Description = "Prints header values.",
             ExtendedHelpText = "Displays a list of headers of the given OML file. Header values can be changed using the 'manipulate' command.\n\n" +
-                "Headers are shown in the following format: [Writable|ReadOnly],[DataType],[HeaderName]:[HeaderValue].")]
+                "Headers are shown in the following format: [Writable|ReadOnly],[DataType],[HeaderName]:[HeaderValue].\n\n" +
+                "Header values (after the colon ':') might be URL-encoded. You should run them through a URL-decode function.")]
         public void ShowHeaders(
             [Operand(
                 Name = "input",
@@ -308,7 +309,15 @@ namespace OmlUtilities
             {
                 foreach (string fragmentLine in fragments)
                 {
-                    XElement fragmentXml = XElement.Parse(fragmentLine);
+                    XElement fragmentXml;
+                    try
+                    {
+                        fragmentXml = XElement.Parse(fragmentLine);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new Exception($"Unable to parse XML of one of the provided fragments.", ex);
+                    }
                     oml.SetFragmentXml(fragmentXml);
                 }
             }
