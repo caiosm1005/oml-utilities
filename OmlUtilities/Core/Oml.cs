@@ -9,9 +9,19 @@ namespace OmlUtilities.Core
     public partial class Oml
     {
         /// <summary>
-        /// Assembly instance.
+        /// List of available fragment names.
         /// </summary>
-        protected object _instance;
+        private List<string> _fragmentNames = null;
+
+        /// <summary>
+        /// Dictionary of available fragments.
+        /// </summary>
+        private Dictionary<string, XElement> _fragments = new Dictionary<string, XElement>();
+
+        /// <summary>
+        /// OML assembly instance.
+        /// </summary>
+        protected object _omlInstance;
 
         /// <summary>
         /// Platform version used for loading the OML contents.
@@ -26,10 +36,14 @@ namespace OmlUtilities.Core
         /// <summary>
         /// Returns a list of available fragment names.
         /// </summary>
-        /// <returns>List of availabel fragment names.</returns>
-        public List<string> GetFragmentNames()
+        /// <returns>List of available fragment names.</returns>
+        public List<string> DumpFragmentsNames()
         {
-            return AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_instance, "DumpFragmentsNames").ToList();
+            if (_fragmentNames == null)
+            {
+                _fragmentNames = AssemblyUtility.ExecuteInstanceMethod<IEnumerable<string>>(_omlInstance, "DumpFragmentsNames").ToList();
+            }
+            return _fragmentNames;
         }
 
         /// <summary>
@@ -39,63 +53,56 @@ namespace OmlUtilities.Core
         /// <returns>XML contents of the fragment.</returns>
         public XElement GetFragmentXml(string fragmentName)
         {
-            OmlFragmentReader reader = new OmlFragmentReader(this, fragmentName);
-            XElement fragmentXml = reader.GetXElement();
-            reader.Close();
-            fragmentXml.SetAttributeValue("FragmentName", fragmentName);
+            XElement fragmentXml;
+            if (_fragments.ContainsKey(fragmentName))
+            {
+                fragmentXml = _fragments[fragmentName];
+            }
+            else {
+                object reader = AssemblyUtility.ExecuteInstanceMethod<object>(_omlInstance, "GetFragmentXmlReader", new object[] { fragmentName });
+                fragmentXml = AssemblyUtility.ExecuteInstanceMethod<XElement>(reader, "ToXElement");
+                AssemblyUtility.ExecuteInstanceMethod<object>(reader, "Close");
+                _fragments[fragmentName] = fragmentXml;
+            }
             return fragmentXml;
         }
 
         /// <summary>
-        /// Sets the XML contents of a fragment.
+        /// Replaces a fragment XML.
         /// </summary>
-        /// <param name="fragmentName">Name of the fragment to be set.</param>
+        /// <param name="fragmentName">Name of the fragment to be replaced.</param>
         /// <param name="fragmentXml">New XML contents of the fragment.</param>
-        public void SetFragmentXml(XElement fragmentXml)
+        public void ReplaceFragmentXml(string fragmentName, XElement fragmentXml)
         {
-            // Make a copy of the provided XElement
-            fragmentXml = new XElement(fragmentXml);
-
-            // Get fragment name attribute and remove it from XElement
-            var fragmentNameAttribute = fragmentXml.Attribute("FragmentName");
-            if (fragmentNameAttribute == null)
+            if (fragmentXml != null)
             {
-                throw new OmlException("The provided fragment XML does not have a 'FragmentName' attribute.");
+                object writer = AssemblyUtility.ExecuteInstanceMethod<object>(_omlInstance, "GetFragmentXmlWriter", new object[] { fragmentName });
+                AssemblyUtility.ExecuteInstanceMethod<object>(writer, "Replace", new object[] { fragmentXml });
+                AssemblyUtility.ExecuteInstanceMethod<object>(writer, "Close");
+                _fragments[fragmentName] = fragmentXml;
+                if (_fragmentNames != null && _fragmentNames.IndexOf(fragmentName) == -1)
+                {
+                    _fragmentNames.Add(fragmentName);
+                }
             }
-            string fragmentName = fragmentNameAttribute.Value;
-            fragmentNameAttribute.Remove();
-
-            // Write fragment
-            OmlFragmentWriter writer = new OmlFragmentWriter(this, fragmentName);
-            writer.Write(fragmentXml);
-            writer.Close();
-        }
-
-        /// <summary>
-        /// Returns a single XML document containing all fragments.
-        /// </summary>
-        /// <returns>Full XML document.</returns>
-        public XDocument GetXml()
-        {
-            XElement root = new XElement("OML");
-            
-            foreach(string fragmentName in GetFragmentNames())
+            else // Delete fragment when the provided XML is null
             {
-                XElement fragment = GetFragmentXml(fragmentName);
-                fragment.SetAttributeValue("FragmentName", fragmentName);
-                root.Add(fragment);
+                AssemblyUtility.ExecuteInstanceMethod<object>(_omlInstance, "DeleteFragment", new object[] { fragmentName });
+                _fragments.Remove(fragmentName);
+                if (_fragmentNames != null)
+                {
+                    _fragmentNames.Remove(fragmentName);
+                }
             }
-
-            return new XDocument(root);
         }
 
         /// <summary>
         /// Exports the OML contents to an OML stream.
         /// </summary>
         /// <param name="outputStream">Destination stream to write the OML file contents to.</param>
-        public void Save(Stream outputStream)
+        public void WriteTo(Stream outputStream)
         {
-            AssemblyUtility.ExecuteInstanceMethod<object>(_instance, "WriteTo", new object[] { outputStream });
+            AssemblyUtility.ExecuteInstanceMethod<object>(_omlInstance, "WriteTo", new object[] { outputStream });
         }
 
         /// <summary>
@@ -125,11 +132,11 @@ namespace OmlUtilities.Core
             {
                 if (PlatformVersion == PlatformVersion.O_11_0)
                 {
-                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
+                    _omlInstance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null, null });
                 }
                 else
                 {
-                    _instance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
+                    _omlInstance = Activator.CreateInstance(assemblyType, new object[] { omlStream, false, null, null });
                 }
 
                 // Create OML headers

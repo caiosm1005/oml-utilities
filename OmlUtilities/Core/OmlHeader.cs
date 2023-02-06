@@ -36,7 +36,7 @@ namespace OmlUtilities.Core
             /// <param name="isReadOnly">Whether this header is read-only or writable.</param>
             public OmlHeader(Oml oml, string headerName, Type headerType, bool isReadOnly = false)
             {
-                _instance = AssemblyUtility.GetInstanceField(oml._instance, "Header");
+                _instance = AssemblyUtility.GetInstanceField(oml._omlInstance, "Header");
 
                 // Validate the provided type
                 Type valueType = AssemblyUtility.GetInstanceField(_instance, headerName).GetType();

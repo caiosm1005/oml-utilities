@@ -216,7 +216,7 @@ namespace OmlUtilities
 
             if (string.IsNullOrEmpty(fragmentName))
             {
-                foreach(string innerFragmentName in oml.GetFragmentNames())
+                foreach (string innerFragmentName in oml.DumpFragmentsNames())
                 {
                     Console.WriteLine(innerFragmentName);
                 }
@@ -234,8 +234,9 @@ namespace OmlUtilities
         /// <param name="input">Path to the OML file to be loaded.</param>
         /// <param name="output">Destination path to save the manipulated OML file.</param>
         /// <param name="format">Destination file format. Possible formats are 'oml' and 'xml'. If not set, will be guessed according to the output file extension.</param>
-        /// <param name="headers">Sets a header value. Name and value must be separated by colon (':').</param>
-        /// <param name="fragments">Sets the content of a fragment. Name and value must be separated by colon (':').</param>
+        /// <param name="headers">Sets a header value. Name and value must be separated by colon (e.g.: 'Description:Hello, World!').</param>
+        /// <param name="fragments">Saves a fragment XML into the OML file.</param>
+        /// <param name="fragmentsToDelete">Deletes a fragment by its fragment name.</param>
         /// <param name="version">Platform version to be used for decoding the OML file.</param>
         [Command(
             Name = "manipulate",
@@ -266,6 +267,11 @@ namespace OmlUtilities
                 Description = "Saves a fragment XML into the OML file.")]
             List<string> fragments = null,
             [Option(
+                ShortName = "D",
+                LongName = "delete-fragment",
+                Description = "Deletes a fragment by its fragment name.")]
+            List<string> fragmentsToDelete = null,
+            [Option(
                 ShortName = "v",
                 LongName = "version",
                 Description = "Platform version (e.g.: 'O11') to be used for decoding the OML file. If not set, will use the latest version available.")]
@@ -273,6 +279,9 @@ namespace OmlUtilities
         {
             // Get OML instance
             Oml oml = GetOmlInstance(input, version);
+
+            // Get OML manipulator
+            OmlManipulator manipulator = new OmlManipulator(oml);
 
             // Set headers
             if (headers != null)
@@ -293,14 +302,8 @@ namespace OmlUtilities
                         throw new OmlException("The header name in the header parameter is mandatory.");
                     }
 
-                    if (!oml.Headers.ContainsKey(headerName))
-                    {
-                        throw new OmlException($"Header name \"{headerName}\" was not found.");
-                    }
-
-                    OmlHeader header = oml.Headers[headerName];
                     string headerValue = headerLine[(colonIndex + 1)..];
-                    header.SetValue(headerValue);
+                    manipulator.SetHeader(headerName, headerValue);
                 }
             }
 
@@ -318,7 +321,16 @@ namespace OmlUtilities
                     {
                         throw new Exception($"Unable to parse XML of one of the provided fragments.", ex);
                     }
-                    oml.SetFragmentXml(fragmentXml);
+                    manipulator.SetFragment(fragmentXml);
+                }
+            }
+
+            // Delete fragments
+            if (fragmentsToDelete != null)
+            {
+                foreach (string fragmentName in fragmentsToDelete)
+                {
+                    manipulator.DeleteFragment(fragmentName);
                 }
             }
 
@@ -327,13 +339,13 @@ namespace OmlUtilities
             if (format != null && format.Equals("xml", StringComparison.InvariantCultureIgnoreCase) || format == null && output.EndsWith(".xml", StringComparison.InvariantCultureIgnoreCase))
             {
                 StreamWriter sw = new StreamWriter(outputStream);
-                sw.Write(oml.GetXml().ToString(SaveOptions.DisableFormatting)); // Export XML
+                sw.Write(manipulator.GetXmlDocument().ToString(SaveOptions.DisableFormatting));
                 sw.Flush();
                 sw.Close();
             }
             else
             {
-                oml.Save(outputStream); // Export OML
+                oml.WriteTo(outputStream); // Export OML
             }
 
             outputStream.Close();
@@ -389,9 +401,13 @@ namespace OmlUtilities
                 {
                     try
                     {
+                        // Get OML instance
                         Oml oml = GetOmlInstance(omlPathDir + Path.DirectorySeparatorChar + file, version);
 
-                        string txtXml = oml.GetXml().ToString();
+                        // Get OML manipulator
+                        OmlManipulator manipulator = new OmlManipulator(oml);
+
+                        string txtXml = manipulator.GetXmlDocument().ToString(SaveOptions.DisableFormatting);
 
                         int i = 0;
                         int count = 0;
