@@ -49,6 +49,10 @@ namespace OmlUtilities
                 }
                 else
                 {
+                    if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                    }
                     return File.OpenWrite(path);
                 }
             }
@@ -319,7 +323,7 @@ namespace OmlUtilities
                     }
                     catch (Exception ex)
                     {
-                        throw new Exception($"Unable to parse XML of one of the provided fragments.", ex);
+                        throw new Exception("Unable to parse XML of one of the provided fragments.", ex);
                     }
                     manipulator.SetFragment(fragmentXml);
                 }
