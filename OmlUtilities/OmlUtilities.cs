@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Xml.Linq;
 using static OmlUtilities.Core.Oml;
+using static OmlUtilities.Core.Oml.OmlInspector;
 
 namespace OmlUtilities
 {
@@ -339,20 +340,119 @@ namespace OmlUtilities
             }
 
             // Save manipulated OML
-            Stream outputStream = GetStream(output, false);
-            if (format != null && format.Equals("xml", StringComparison.InvariantCultureIgnoreCase) || format == null && output.EndsWith(".xml", StringComparison.InvariantCultureIgnoreCase))
+            using (Stream outputStream = GetStream(output, false))
             {
-                StreamWriter sw = new StreamWriter(outputStream);
-                sw.Write(manipulator.GetXmlDocument().ToString(SaveOptions.DisableFormatting));
-                sw.Flush();
-                sw.Close();
+                if ("xml".Equals(format, StringComparison.InvariantCultureIgnoreCase) || format == null && output.EndsWith(".xml", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    StreamWriter writer = new StreamWriter(outputStream);
+                    writer.Write(manipulator.GetXmlDocument().ToString(SaveOptions.DisableFormatting));
+                    writer.Flush();
+                    writer.Close();
+                }
+                else
+                {
+                    oml.WriteTo(outputStream); // Export OML
+                }
+            }
+        }
+
+        [Command(
+            Name = "inspect",
+            Description = "Inspects an OML file.",
+            ExtendedHelpText = "Opens an OML file and inspects it for findings. Useful for identifying common programming mistakes.")]
+        public void Inspect(
+            /*[Operand(
+                Name = "input",
+                Description = "Path to the OML file to be loaded. It is possible to read from stdin instead of a file by using UNIX pipe access syntax (e.g.: 'pipe:').")]
+            string input,*/
+            [Operand(
+                Name = "oml-path-dir",
+                Description = "Path to the directory with OML files to be examined.")]
+            string omlPathDir,
+            [Option(
+                ShortName = "v",
+                LongName = "version",
+                Description = "Platform version (e.g.: 'O11') to be used for decoding the OML file. If not set, will use the latest version available.")]
+            string version = null)
+        {
+            if (Directory.Exists(omlPathDir))
+            {
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+
+                Console.WriteLine("Inspecting OMLs inside of {0} ...", omlPathDir);
+
+                DirectoryInfo omlDir = new DirectoryInfo(omlPathDir);
+                FileInfo[] Files = omlDir.GetFiles("*.oml");
+
+                Console.WriteLine("{0} files found.", Files.Count());
+
+                int CountFile = 0;
+                foreach (FileInfo file in Files)
+                {
+                    try
+                    {
+                        // Get OML instance
+                        Oml oml = GetOmlInstance(file.ToString(), version);
+
+                        // Get OML manipulator
+                        OmlInspector inspector = new OmlInspector(oml);
+
+                        var p = new List<Finding>();
+                        p.AddRange(inspector.ScanAggregatesWithSelfComparison());
+                        p.AddRange(inspector.ScanRedundantIdentifierCastings());
+                        p.AddRange(inspector.ScanDynamicSortsMissingBrackets());
+                        p.AddRange(inspector.ScanDynamicSortsWithInvalidEntityOrAttribute());
+                        p.AddRange(inspector.ScanUnwrappedIntegrationBuilderEntityAttributesShownOnUI(new string[] {
+                            "IBToText",
+                            "IBToInteger",
+                            "IBToLongInteger",
+                            "IBToDecimal"
+                        }));
+
+                        if (p.Count > 0)
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine(oml.Headers["Name"].GetValue<string>());
+                        }
+
+                        foreach (var q in p)
+                        {
+                            Console.WriteLine($"* {q.FindingType}: {q.ElementName}");
+                        }
+                    }
+                    catch (Exception err)
+                    {
+                        Console.WriteLine("[{0}/{1}] - Error occurred parsing file: {2}", ++CountFile, Files.Count(), err.Message.Replace("\n", ""));
+                    }
+                }
+
+                watch.Stop();
+                TimeSpan ElapsedMS = TimeSpan.FromMilliseconds(watch.ElapsedMilliseconds);
+                string formatElapsedTime = string.Format("{0:D2}h:{1:D2}m:{2:D2}s",
+                        ElapsedMS.Hours,
+                        ElapsedMS.Minutes,
+                        ElapsedMS.Seconds);
+
+                Console.WriteLine("Elapsed time of {0}", formatElapsedTime);
             }
             else
             {
-                oml.WriteTo(outputStream); // Export OML
+                Console.WriteLine("Directory not found.");
             }
 
-            outputStream.Close();
+
+
+
+
+
+
+
+
+
+
+
+
+            
         }
 
         /// <summary>

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OmlUtilities": {
+      "commandName": "Project",
+      "commandLineArgs": "inspect testomls/"
+    }
+  }
+}
